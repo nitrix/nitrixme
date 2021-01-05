@@ -1,13 +1,19 @@
 package main
 
 import (
-	"io"
+	_ "embed"
 	"log"
 	"net/http"
-	"os"
 )
 
+//go:embed index.html
+var indexPage []byte
+
+//go:embed nitrixme.jpg
+var picture []byte
+
 func main() {
+	http.HandleFunc("/nitrixme.jpg", pictureHandler)
 	http.HandleFunc("/", homepageHandler)
 
 	err := http.ListenAndServe(":8080", nil)
@@ -16,14 +22,16 @@ func main() {
 	}
 }
 
-func homepageHandler(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open("index.html")
+func pictureHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(picture)
 	if err != nil {
 		w.WriteHeader(500)
 		return
 	}
+}
 
-	_, err = io.Copy(w, file)
+func homepageHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(indexPage)
 	if err != nil {
 		w.WriteHeader(500)
 		return
