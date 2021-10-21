@@ -1,38 +1,57 @@
 package main
 
 import (
+	"crypto/md5"
+	"embed"
 	_ "embed"
+	"encoding/hex"
+	"fmt"
+	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
-//go:embed index.html
-var indexPage []byte
+//go:embed static
+var staticFiles embed.FS
 
-//go:embed nitrixme.jpg
-var picture []byte
+var templates *template.Template
 
 func main() {
-	http.HandleFunc("/nitrixme.jpg", pictureHandler)
+	staticFS := http.FS(staticFiles)
+
+	http.Handle("/static/", http.FileServer(staticFS))
 	http.HandleFunc("/", homepageHandler)
 
-	err := http.ListenAndServe(":8080", nil)
+	var err error
+
+	templates, err = template.ParseFS(staticFiles, "static/*.gohtml")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalln("unable to listen and serve:", err)
 	}
 }
 
-func pictureHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write(picture)
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}
-}
-
 func homepageHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write(indexPage)
+
+	hasher := md5.New()
+	fmt.Fprint(hasher, time.Now().UTC().Unix())
+	fmt.Fprint(hasher, rand.Intn(1000))
+	emailPrefix := hex.EncodeToString(hasher.Sum(nil))[:16]
+
+	err := templates.ExecuteTemplate(w, "index.gohtml", struct {
+		EmailPrefix string
+	}{
+		EmailPrefix: emailPrefix,
+	})
+
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(500)
 		return
 	}
