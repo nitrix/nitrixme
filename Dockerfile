@@ -1,12 +1,12 @@
-FROM golang:1.16beta1-alpine AS builder
-
+FROM rustlang/rust:nightly AS builder
 WORKDIR /opt
 COPY . /opt
+RUN cargo build --release
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o nitrixme
-
-FROM scratch AS release
-COPY --from=builder /opt /opt
-
+FROM debian:stable-slim AS final
 WORKDIR /opt
+COPY --from=builder /opt/target/release/nitrixme /opt/nitrixme
+COPY --from=builder /opt/templates /opt/templates
+COPY --from=builder /opt/static /opt/static
+EXPOSE 8000
 CMD ["/opt/nitrixme"]

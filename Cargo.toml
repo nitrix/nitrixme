@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name = "nitrixme"
+version = "0.1.0"
+
+[dependencies]
+chrono = "0.4.19"
+md5 = "0.7.0"
+rocket = {git = "https://github.com/SergioBenitez/Rocket", branch = "v0.5-rc"}
+rocket_dyn_templates = {git = "https://github.com/SergioBenitez/Rocket", branch = "v0.5-rc", features = ["handlebars"]}
+
+[[bin]]
+name = "nitrixme"
+path = "main.rs"
