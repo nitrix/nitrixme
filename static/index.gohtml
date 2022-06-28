@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<title>nitrix.me</title>
+	<meta name="author" content="Alex Belanger">
+	<meta name="description" content="My personal website">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<style>
+		:root {
+			--foreground: black;
+			--accent: #707070;
+			--font: monospace;
+		}
+
+		::selection {
+			background-color: var(--accent);
+			color: white;
+		}
+
+		body {
+			margin: 30px 30px;
+			color: var(--foreground);
+			font-family: var(--font);
+			font-size: 1.2em;
+			line-height: 1.8;
+		}
+
+		a {
+			color: var(--foreground);
+			text-decoration: none;
+			padding: 2px;
+			border: 1px solid var(--foreground);
+		}
+
+		a:hover {
+			border-color: var(--accent);
+			border: 1px dashed var(--foreground);
+		}
+
+		.detailed {
+			margin-left: 40px;
+		}
+	</style>
+</head>
+
+<body>
+	<img width="220" src="/static/nitrixme.jpg">
+
+	<p>I am <strong>Alex B&eacute;langer</strong></p>
+
+	<div class="detailed">
+		<a href="https://github.com/nitrix"><strong>nitrix</strong></a> on GitHub
+		<br /><strong>nitrix</strong> on Libera
+		<br /><strong>nitrix#6946</strong></a> on Discord
+	</div>
+
+	<p>programmer, gamer, and zen student.</p>
+
+	<p>
+		Email <a href="mailto:{{.EmailPrefix}}@nitrix.me"><strong>{{.EmailPrefix}}</strong>@nitrix.me</a>
+		<br />GPG key <a href="/static/nitrix.gpg">0xF095 0DA2 183C 1E29 619F</a>
+	</p>
+</body>
+
+</html>
