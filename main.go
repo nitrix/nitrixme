@@ -10,6 +10,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -31,7 +33,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = http.ListenAndServe(":8080", nil)
+	port := 8080
+
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		if n, err := strconv.Atoi(envPort); err == nil {
+			port = n
+		}
+	}
+
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {
 		log.Fatalln("unable to listen and serve:", err)
 	}
