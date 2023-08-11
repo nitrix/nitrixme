@@ -9,4 +9,5 @@ FROM scratch AS release
 COPY --from=builder /opt /opt
 
 WORKDIR /opt
+ENV GIN_MODE=release
 CMD ["/opt/nitrixme"]
