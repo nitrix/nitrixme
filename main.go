@@ -11,9 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"contrib.go.opencensus.io/exporter/stackdriver"
+	"cloud.google.com/go/profiler"
 	"github.com/gin-gonic/gin"
-	"go.opencensus.io/trace"
 )
 
 //go:embed static/* templates/*
@@ -26,21 +25,15 @@ func generateEmailPrefix() string {
 	return hex.EncodeToString(hasher.Sum(nil))[:16]
 }
 
-func cloudTracing() {
-	exporter, err := stackdriver.NewExporter(stackdriver.Options{})
-
-	// Only begin tracing if we successfully created the exporter.
-	if err == nil {
-		trace.RegisterExporter(exporter)
-	}
-}
-
-func init() {
-	cloudTracing()
-	gin.DisableConsoleColor()
-}
-
 func main() {
+	cfg := profiler.Config{
+		Service: "nitrixme",
+	}
+
+	profiler.Start(cfg)
+
+	gin.DisableConsoleColor()
+
 	router := gin.Default()
 
 	router.SetHTMLTemplate(template.Must(template.New("").ParseFS(f, "templates/*.gohtml")))
