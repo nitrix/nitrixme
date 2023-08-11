@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/md5"
 	"embed"
-	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -48,6 +47,10 @@ func main() {
 }
 
 func homepageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 
 	hasher := md5.New()
 	fmt.Fprint(hasher, time.Now().UTC().Unix())
