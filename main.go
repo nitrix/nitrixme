@@ -27,7 +27,8 @@ func generateEmailPrefix() string {
 
 func main() {
 	cfg := profiler.Config{
-		Service: "nitrixme",
+		Service:      "nitrixme",
+		DebugLogging: true,
 	}
 
 	profiler.Start(cfg)
