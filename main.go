@@ -15,7 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed static/* templates/*
+//go:embed static/* templates/* .well-known/*
 var f embed.FS
 
 func generateEmailPrefix() string {
@@ -42,13 +42,24 @@ func main() {
 	static, _ := fs.Sub(f, "static")
 	router.StaticFS("/static", http.FS(static))
 
+	hu, _ := fs.Sub(f, ".well-known/openpgpkey/hu")
+	router.Group("/.well-known/openpgpkey/hu", func(ctx *gin.Context) {
+		ctx.Header("Content-Type", "application/octet-stream")
+		ctx.Header("Access-Control-Allow-Origin", "*")
+	}).StaticFS("/.well-known/openpgpkey/hu", http.FS(hu))
+
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.gohtml", gin.H{
 			"emailPrefix": generateEmailPrefix(),
 		})
 	})
 
-	err := router.Run()
+	var err error
+	if gin.Mode() == gin.DebugMode {
+		err = router.Run("localhost:8080")
+	} else {
+		err = router.Run()
+	}
 	if err != nil {
 		panic(err)
 	}
