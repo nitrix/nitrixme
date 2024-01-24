@@ -42,11 +42,11 @@ func main() {
 	static, _ := fs.Sub(f, "static")
 	router.StaticFS("/static", http.FS(static))
 
-	hu, _ := fs.Sub(f, ".well-known/openpgpkey/hu")
-	router.Group("/.well-known/openpgpkey/hu", func(ctx *gin.Context) {
+	openpgpkey, _ := fs.Sub(f, ".well-known/openpgpkey")
+	router.Group("/.well-known/openpgpkey", func(ctx *gin.Context) {
 		ctx.Header("Content-Type", "application/octet-stream")
 		ctx.Header("Access-Control-Allow-Origin", "*")
-	}).StaticFS("/.well-known/openpgpkey/hu", http.FS(hu))
+	}).StaticFS("/", http.FS(openpgpkey))
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.gohtml", gin.H{
