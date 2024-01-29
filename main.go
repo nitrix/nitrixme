@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"cloud.google.com/go/profiler"
@@ -54,6 +55,11 @@ func main() {
 		})
 	})
 
+	// Support HTTP/2 over clear-text (h2c) for Cloud Run.
+	if useh2c := os.Getenv("USE_H2C"); useh2c != "" {
+		router.UseH2C = true
+	}
+
 	var err error
 	if gin.Mode() == gin.DebugMode {
 		err = router.Run("localhost:8080")
@@ -63,4 +69,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	router.RunTLS()
 }
