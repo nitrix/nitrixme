@@ -1,42 +1,23 @@
 package main
 
 import (
-	"crypto/md5"
 	"embed"
-	"encoding/hex"
-	"fmt"
 	"html/template"
 	"io/fs"
-	"math/rand"
 	"net/http"
 	"os"
-	"time"
 
-	"cloud.google.com/go/profiler"
 	"github.com/gin-gonic/gin"
 )
 
 //go:embed static/* templates/* .well-known/*
 var f embed.FS
 
-func generateEmailPrefix() string {
-	hasher := md5.New()
-	fmt.Fprint(hasher, time.Now().UTC().Unix())
-	fmt.Fprint(hasher, rand.Intn(1000))
-	return hex.EncodeToString(hasher.Sum(nil))[:16]
-}
-
 func main() {
-	cfg := profiler.Config{
-		Service:      "nitrixme",
-		DebugLogging: true,
-	}
-
-	profiler.Start(cfg)
-
 	gin.DisableConsoleColor()
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
 
 	router.SetHTMLTemplate(template.Must(template.New("").ParseFS(f, "templates/*.gohtml")))
 
@@ -50,9 +31,7 @@ func main() {
 	}).StaticFS("/", http.FS(openpgpkey))
 
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.gohtml", gin.H{
-			"emailPrefix": generateEmailPrefix(),
-		})
+		c.HTML(http.StatusOK, "index.gohtml", gin.H{})
 	})
 
 	// Support HTTP/2 over clear-text (h2c) for Cloud Run.
