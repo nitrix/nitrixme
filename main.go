@@ -69,6 +69,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	router.RunTLS()
 }
