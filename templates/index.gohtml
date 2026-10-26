@@ -55,7 +55,6 @@
 			border: none;
 		}
 
-		/* The portrait is a still that turns into an orbit you can drag once its frames are in (see the script below). */
 		.me {
 			position: relative;
 			display: inline-block;
@@ -125,10 +124,6 @@
 	</p>
 
 	<script>
-		// The portrait is the first frame of an orbit. The still loads with the page; once it is done the frames follow quietly, all of
-		// them in one file (static/nitrixme-orbit.bin, see tools/portrait) already cut into JPEGs, are decoded together, and the canvas fades in over
-		// the still (the first frame is the still, so nothing changes under the eye). Touching the portrait before that asks for them at once
-		// and makes the fade quick. After that, dragging turns me around.
 		(function () {
 			var me = document.getElementById("me");
 			if (!me || !window.createImageBitmap || !window.fetch) return;
@@ -136,7 +131,7 @@
 			var frames = [], n = 0, pos = 0, vel = 0, shown = -1;
 			var cv = null, ctx = null, drag = null, raf = 0, last = 0, live = false;
 			var started = false, hurry = false;
-			var PX_PER_TURN = 400; // a drag this long turns me once around, the front follows the finger
+			var PX_PER_TURN = 400;
 
 			function draw() {
 				var i = Math.round(((pos % n) + n) % n) % n;
@@ -186,9 +181,9 @@
 				cv.width = ring.size[0];
 				cv.height = ring.size[1];
 				ctx = cv.getContext("2d");
-				ctx.drawImage(frames[0], 0, 0); // the still, again: what the fade goes to
+				ctx.drawImage(frames[0], 0, 0);
 				me.appendChild(cv);
-				cv.getBoundingClientRect(); // so the fade starts from the canvas as it is now
+				cv.getBoundingClientRect();
 				cv.style.transition = "opacity " + (hurry ? 0.12 : 0.6) + "s ease";
 				cv.style.opacity = 1;
 				live = true;
@@ -202,18 +197,17 @@
 					.then(function (r) { if (!r.ok) throw new Error("no ring"); return r.arrayBuffer(); })
 					.then(parse)
 					.then(ready)
-					.catch(function () { /* the still stays, nothing else is wrong */ });
+					.catch(function () { /* the still stays */ });
 			}
 
-			// ---- before the frames are there: a touch asks for them now
 			function hurried() { hurry = true; begin(); }
+
 			me.addEventListener("pointerenter", hurried);
 			me.addEventListener("pointerdown", hurried);
 
-			// ---- after: dragging turns me around
 			me.addEventListener("pointerdown", function (e) {
 				if (!live || (e.button !== 0 && e.pointerType === "mouse")) return;
-				cv.style.transition = "none"; // grabbed while still fading in: it is all the way there now
+				cv.style.transition = "none";
 				cv.style.opacity = 1;
 				drag = { x: e.clientX, t: performance.now() };
 				vel = 0;
@@ -221,6 +215,7 @@
 				me.classList.add("drag");
 				e.preventDefault();
 			});
+
 			me.addEventListener("pointermove", function (e) {
 				if (!drag) return;
 				var now = performance.now(), dx = e.clientX - drag.x, dt = Math.max(1, now - drag.t) / 1000;
@@ -231,23 +226,25 @@
 				drag.t = now;
 				want();
 			});
+			
 			function release() {
 				if (!drag) return;
-				if (performance.now() - drag.t > 120) vel = 0; // it stopped before the finger left
+				if (performance.now() - drag.t > 120) vel = 0;
 				drag = null;
 				me.classList.remove("drag");
 				want();
 			}
+			
 			me.addEventListener("pointerup", release);
 			me.addEventListener("pointercancel", release);
 
-			// ---- when: after the page is done and the browser has nothing better to do (never by itself on a data saver)
 			var save = navigator.connection && navigator.connection.saveData;
 			function later() {
 				if (save) return;
 				if (window.requestIdleCallback) requestIdleCallback(begin, { timeout: 2000 });
 				else setTimeout(begin, 500);
 			}
+
 			if (document.readyState === "complete") later(); else window.addEventListener("load", later);
 		})();
 	</script>
