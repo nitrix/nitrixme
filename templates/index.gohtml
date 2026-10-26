@@ -3,7 +3,7 @@
 
 <head>
 	<meta charset="utf-8">
-	<title>nitrix.me</title>
+	<title>nitrix</title>
 	<meta name="author" content="Alex Belanger">
 	<meta name="description" content="My personal website">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -55,6 +55,32 @@
 			border: none;
 		}
 
+		/* The portrait is a still that turns into an orbit you can drag once its frames are in (see the script below). */
+		.me {
+			position: relative;
+			display: inline-block;
+			touch-action: pan-y;
+			-webkit-user-select: none;
+			user-select: none;
+		}
+
+		.me canvas {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 220px;
+			height: 220px;
+			opacity: 0;
+		}
+
+		.me.live {
+			cursor: grab;
+		}
+
+		.me.drag {
+			cursor: grabbing;
+		}
+
 		.logo {
 			position: relative;
 			margin-left: 5px;
@@ -76,7 +102,9 @@
 </head>
 
 <body>
-	<img width="220" height="220" src="/static/nitrixme.jpg">
+	<div class="me" id="me" title="Drag to turn me around">
+		<img width="220" height="220" src="/static/nitrixme.png" alt="Alex B&eacute;langer" draggable="false">
+	</div>
 
 	<p>I am <strong>Alex B&eacute;langer</strong></p>
 
@@ -95,6 +123,134 @@
 		Contact email: <a href="mailto:nitrix@nitrix.me">nitrix@nitrix.me</a>
 		<br />GPG key: <a href="static/nitrix.gpg">0x31736D2B10A5F158</a>
 	</p>
+
+	<script>
+		// The portrait is the first frame of an orbit. The still loads with the page; once it is done the frames follow quietly, all of
+		// them in one file (static/nitrixme-orbit.bin, see tools/portrait) already cut into JPEGs, are decoded together, and the canvas fades in over
+		// the still (the first frame is the still, so nothing changes under the eye). Touching the portrait before that asks for them at once
+		// and makes the fade quick. After that, dragging turns me around.
+		(function () {
+			var me = document.getElementById("me");
+			if (!me || !window.createImageBitmap || !window.fetch) return;
+
+			var frames = [], n = 0, pos = 0, vel = 0, shown = -1;
+			var cv = null, ctx = null, drag = null, raf = 0, last = 0, live = false;
+			var started = false, hurry = false;
+			var PX_PER_TURN = 400; // a drag this long turns me once around, the front follows the finger
+
+			function draw() {
+				var i = Math.round(((pos % n) + n) % n) % n;
+				if (i === shown) return;
+				shown = i;
+				ctx.drawImage(frames[i], 0, 0);
+			}
+
+			function tick(now) {
+				raf = 0;
+				var dt = Math.min(0.1, (now - last) / 1000 || 0);
+				last = now;
+				var moving = false;
+				if (!drag && Math.abs(vel) > 0.2) {
+					pos += vel * dt;
+					vel *= Math.exp(-3.2 * dt);
+					moving = true;
+				} else if (!drag) {
+					vel = 0;
+				}
+				draw();
+				if (moving) want();
+			}
+
+			function want() {
+				if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
+			}
+
+			function parse(buf) {
+				var dv = new DataView(buf);
+				var magic = String.fromCharCode.apply(null, new Uint8Array(buf, 0, 8));
+				if (buf.byteLength < 20 || magic !== "AGRING1\n") throw new Error("not a ring");
+				var count = dv.getUint32(8, true), size = [dv.getUint32(12, true), dv.getUint32(16, true)];
+				var at = 20 + 4 * count, jobs = [];
+				for (var i = 0; i < count; i++) {
+					var len = dv.getUint32(20 + 4 * i, true);
+					jobs.push(createImageBitmap(new Blob([new Uint8Array(buf, at, len)], { type: "image/jpeg" })));
+					at += len;
+				}
+				return Promise.all(jobs).then(function (list) { return { list: list, size: size }; });
+			}
+
+			function ready(ring) {
+				frames = ring.list;
+				n = frames.length;
+				cv = document.createElement("canvas");
+				cv.width = ring.size[0];
+				cv.height = ring.size[1];
+				ctx = cv.getContext("2d");
+				ctx.drawImage(frames[0], 0, 0); // the still, again: what the fade goes to
+				me.appendChild(cv);
+				cv.getBoundingClientRect(); // so the fade starts from the canvas as it is now
+				cv.style.transition = "opacity " + (hurry ? 0.12 : 0.6) + "s ease";
+				cv.style.opacity = 1;
+				live = true;
+				me.classList.add("live");
+			}
+
+			function begin() {
+				if (started) return;
+				started = true;
+				fetch("/static/nitrixme-orbit.bin")
+					.then(function (r) { if (!r.ok) throw new Error("no ring"); return r.arrayBuffer(); })
+					.then(parse)
+					.then(ready)
+					.catch(function () { /* the still stays, nothing else is wrong */ });
+			}
+
+			// ---- before the frames are there: a touch asks for them now
+			function hurried() { hurry = true; begin(); }
+			me.addEventListener("pointerenter", hurried);
+			me.addEventListener("pointerdown", hurried);
+
+			// ---- after: dragging turns me around
+			me.addEventListener("pointerdown", function (e) {
+				if (!live || (e.button !== 0 && e.pointerType === "mouse")) return;
+				cv.style.transition = "none"; // grabbed while still fading in: it is all the way there now
+				cv.style.opacity = 1;
+				drag = { x: e.clientX, t: performance.now() };
+				vel = 0;
+				me.setPointerCapture(e.pointerId);
+				me.classList.add("drag");
+				e.preventDefault();
+			});
+			me.addEventListener("pointermove", function (e) {
+				if (!drag) return;
+				var now = performance.now(), dx = e.clientX - drag.x, dt = Math.max(1, now - drag.t) / 1000;
+				var df = -dx / PX_PER_TURN * n;
+				pos += df;
+				vel = 0.6 * vel + 0.4 * (df / dt);
+				drag.x = e.clientX;
+				drag.t = now;
+				want();
+			});
+			function release() {
+				if (!drag) return;
+				if (performance.now() - drag.t > 120) vel = 0; // it stopped before the finger left
+				drag = null;
+				me.classList.remove("drag");
+				want();
+			}
+			me.addEventListener("pointerup", release);
+			me.addEventListener("pointercancel", release);
+
+			// ---- when: after the page is done and the browser has nothing better to do (never by itself on a data saver)
+			var save = navigator.connection && navigator.connection.saveData;
+			function later() {
+				if (save) return;
+				if (window.requestIdleCallback) requestIdleCallback(begin, { timeout: 2000 });
+				else setTimeout(begin, 500);
+			}
+			if (document.readyState === "complete") later(); else window.addEventListener("load", later);
+		})();
+	</script>
 </body>
 
 </html>

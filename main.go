@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//go:generate go run ./tools/portrait
+
 //go:embed static/* templates/* .well-known/*
 var f embed.FS
 
